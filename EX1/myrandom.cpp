@@ -29,7 +29,7 @@ public:
         srand(time(0));                 // use srand() to generate a diff sequence of random number with every program run
 
         ctrl2.lock();
-        cout << "Producer " << ID << " will generate " << total << " random numbers" << endl;
+        cout << "Producer " << this -> ID << " will generate " << total << " random numbers" << endl;
         ctrl2.unlock();
 
     }
