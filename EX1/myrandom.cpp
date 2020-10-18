@@ -9,24 +9,29 @@
 using namespace std;
 
 #define BUFFERSIZE 10
-#define NCONSUMERS 3
+int N;                          // number of consumer threads
 
 int in = 0, out = 0, buffer[BUFFERSIZE];
 QSemaphore space(BUFFERSIZE);   // space is initialized to 10
 QSemaphore nitems;              // nitmes is initialized to 0
-QMutex ctrl;                    // mutex is a binary semaphore with values 0 or 1
+QMutex ctrl, ctrl2;                    // mutex is a binary semaphore with values 0 or 1
 
 
-/* we will create ONE producer thread that will generate 100 random integers
-and store them in the 10 element integer array */
 //===============================================
 class Producer : public QThread
 {
 private:
     int total;      // number of random numbers to generate
+    int ID;
 public:
-    Producer(int i) : total(i) {     // constructor initializes 'total' member variable
+    Producer(int i, int ID) : total(i) {     // constructor initializes 'total' member variable
+        this -> ID = ID + 1;
         srand(time(0));                 // use srand() to generate a diff sequence of random number with every program run
+
+        ctrl2.lock();
+        cout << "Producer " << ID << " will generate " << total << " random numbers" << endl;
+        ctrl2.unlock();
+
     }
     void run()
     {
@@ -34,16 +39,20 @@ public:
         {
             space.acquire();                // decrement the number of available spaces in the array
             int random = rand();            // generate a random integer number
+            ctrl2.lock();
             buffer[in++] = random;            // store the random integer number in the array
             in %= BUFFERSIZE;                 // array of 10 elements has index 0 to 9, reset to 0 when index reaches 10
+            ctrl2.unlock();
             nitems.release();               // increment the number of available items in the array to read
         }
         // write -1 to buffer to terminate consumer threads
-        for (int j = 0; j < NCONSUMERS; j++)
+        for (int j = 0; j < N; j++)
         {
             space.acquire();
+            ctrl2.lock();
             buffer[in++] = -1;                // consumer threads will exit when they read -1
             in %= BUFFERSIZE;
+            ctrl2.unlock();
             nitems.release();
         }// producer thread will finally write the -1s and exit
     }
@@ -83,21 +92,52 @@ public:
 };
 
 //================================================
-int main(int argc, char* argv[])
-{
-    Producer p(100);                // generate 100 random numbers (total = 100)
-    Consumer* c[NCONSUMERS];        // 3 consumer threads
-    p.start();                      // start the producer thread
+int main(int argc, char* argv[]){
 
-    for (int i = 0; i < NCONSUMERS; i++)   // loop three times and dynamically create the consumer threads
-    {
+    srand(time(0)); 
+
+     if (argc != 4){
+        std::cout << "Incorrect Number of Arguments!" <<std::endl;
+        return 0; 
+    }
+    
+    int M = arg[1];                 // num of producer threads
+    N = arg[2];                 
+    int NUM = arg[3];               // total number of random numbers to be generated
+
+
+
+
+    Producer* p[M];                 // M producer threads
+    Consumer* c[N];                 // N consumer threads
+
+    int numbersToProduce;
+    int totalNumbersProduced = 0;   // to hold the number of numbers produced so far
+
+    for(int i = 0; i < M; i++){
+        numbersToProduce = rand() % (NUM - totalNumbersProduced);
+        totalNumbersProduced+= numbersToProduce;
+        p[i] = new Producer(numbersToProduce, i);
+        p[i] -> start();
+
+        // the last producer thread will proeduce NUM - total numbers produced
+        if(i == M-1){ 
+            p[i] = new Producer(NUM - totalNumbersProduced, i);
+            p[i] -> start();
+        }
+    }
+
+    
+    for (int i = 0; i < N; i++) {
         c[i] = new Consumer(i);
         c[i]->start();
     }
 
-    p.wait();                       // wait for the producer thread
+    for(int i = 0; i < M; i++)
+        p[i] -> wait();
 
-    for (int i = 0; i < NCONSUMERS; i++)
+
+    for (int i = 0; i < N; i++)
         c[i]->wait();           // wait for the consumer threads
     return 0;
 }
