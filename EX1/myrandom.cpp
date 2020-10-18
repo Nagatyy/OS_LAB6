@@ -101,9 +101,9 @@ int main(int argc, char** argv){
         return 0; 
     }
     
-    int M = argv[1];                 // num of producer threads
-    N = argv[2];                 
-    int NUM = argv[3];               // total number of random numbers to be generated
+    int M = atoi(argv[1]);                 // num of producer threads
+    N = atoi(argv[2]);                 
+    int NUM = atoi(argv[3]);               // total number of random numbers to be generated
 
 
 
