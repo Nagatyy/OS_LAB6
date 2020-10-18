@@ -92,7 +92,7 @@ public:
 };
 
 //================================================
-int main(int argc, char* argv[]){
+int main(int argc, char** argv){
 
     srand(time(0)); 
 
@@ -101,9 +101,9 @@ int main(int argc, char* argv[]){
         return 0; 
     }
     
-    int M = arg[1];                 // num of producer threads
-    N = arg[2];                 
-    int NUM = arg[3];               // total number of random numbers to be generated
+    int M = argv[1];                 // num of producer threads
+    N = argv[2];                 
+    int NUM = argv[3];               // total number of random numbers to be generated
 
 
 
