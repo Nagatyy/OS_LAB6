@@ -12,9 +12,9 @@ using namespace std;
 int N;                          // number of consumer threads
 
 int in = 0, out = 0, buffer[BUFFERSIZE];
-QSemaphore space(BUFFERSIZE);   // space is initialized to 10, keeps track of how many empty buffer elements
-QSemaphore nitems;              // nitmes is initialized to 0, keeps track of how many buffer elements are currently available to read
-QMutex ctrl, ctrl2;                    // mutex is a binary semaphore with values 0 or 1
+QSemaphore space(BUFFERSIZE);   
+QSemaphore nitems;              
+QMutex ctrl, ctrl2;                  
 int numOfNumbersProducedSoFar = 0;
 int NUM;
 
@@ -26,9 +26,9 @@ private:
     int total;      // number of random numbers to generate
     int ID;
 public:
-    Producer(int i, int ID) : total(i) {     // constructor initializes 'total' member variable
+    Producer(int i, int ID) : total(i) {     
         this -> ID = ID + 1;
-        srand(time(0));                 // use srand() to generate a diff sequence of random number with every program run
+        srand(time(0));                
 
         ctrl2.lock();
         cout << "Producer " << this -> ID << " will generate " << total << " random numbers" << endl;
@@ -39,16 +39,16 @@ public:
     {
         for (int j = 0; j < total; j++)
         {
-            space.acquire();                // decrement the number of available spaces in the array
-            int random = rand();            // generate a random integer number
+            space.acquire();                
+            int random = rand();            
             ctrl2.lock();
-            buffer[in++] = random;            // store the random integer number in the array
-            in %= BUFFERSIZE;                 // array of 10 elements has index 0 to 9, reset to 0 when index reaches 10
+            buffer[in++] = random;           
+            in %= BUFFERSIZE;                
             numOfNumbersProducedSoFar++;
             ctrl2.unlock();
-            nitems.release();               // increment the number of available items in the array to read
+            nitems.release();               
         }
-        // write -1 to buffer to terminate consumer threads
+        // write -1 to buffer to terminate consumer threads ONLY if all numbers have been generate
 
         if(numOfNumbersProducedSoFar == NUM){
             for (int j = 0; j < N; j++){
@@ -58,43 +58,38 @@ public:
                 in %= BUFFERSIZE;
                 ctrl2.unlock();
                 nitems.release();
-            } // producer thread will finally write the -1s and exit
+            } 
 
         }
-
-
     }
 };
 
 
-/* we will create 3 consumer thread that will read the numbers stored in the array
-1. no 2 consumer threads are allowed to read the same array element - use a mutex lock
-3. all 3 tghreads are allowed to access the buffer array simultaneously - use a semaphore */
 //===============================================
 class Consumer : public QThread
 {
 private:
     int ID; // identifies the consumer thread
 public:
-    Consumer(int i) : ID(i) {} // constructor to initialize the consumer thread id
+    Consumer(int i) : ID(i) {} 
     void run()
     {
         int item, loc, nread = 0;
         while (1) // loop infinitely until it reads a -1
         {
-            nitems.acquire();               // decrement the number of available items available in the buffer
-            ctrl.lock();                    // lock access to shared resource 'out'
-            loc = out;                      // 'out' is the index used to read array elements
-            out = (out + 1) % BUFFERSIZE;     // increment 'out' so that next thread will not read the same array element
-            ctrl.unlock();                  // unlock access to shared resource 'out'
-            item = buffer[loc];             // can we swap these two statements?
+            nitems.acquire();               
+            ctrl.lock();                    
+            loc = out;                      
+            out = (out + 1) % BUFFERSIZE;     
+            ctrl.unlock();                  
+            item = buffer[loc];             
             space.release();
 
-            if (item < 0) break;               // consumer thread will break and exit if it reads -1 (<0)
-            else nread++;                   // increment valid numbers read by the consumer thread
+            if (item < 0) break;              
+            else nread++;                  
         }
         ctrl.lock();
-        cout << "Consumer Thread " << ID << " read a total of " << nread << endl;       // consumer thread prints how many numbers it had read
+        cout << "Consumer Thread " << ID << " read a total of " << nread << endl;
         ctrl.unlock();
     }
 };
