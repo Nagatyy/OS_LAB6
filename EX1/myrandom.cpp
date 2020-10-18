@@ -115,14 +115,16 @@ int main(int argc, char** argv){
     int totalNumbersProduced = 0;   // to hold the number of numbers produced so far
 
     for(int i = 0; i < M; i++){
-        numbersToProduce = rand() % (NUM - totalNumbersProduced);
-        totalNumbersProduced+= numbersToProduce;
-        p[i] = new Producer(numbersToProduce, i);
-        p[i] -> start();
 
         // the last producer thread will proeduce NUM - total numbers produced
         if(i == M-1){ 
             p[i] = new Producer(NUM - totalNumbersProduced, i);
+            p[i] -> start();
+        }
+        else {
+            numbersToProduce = rand() % (NUM - totalNumbersProduced);
+            totalNumbersProduced+= numbersToProduce;
+            p[i] = new Producer(numbersToProduce, i);
             p[i] -> start();
         }
     }
