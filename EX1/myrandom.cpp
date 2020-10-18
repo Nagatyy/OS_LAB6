@@ -46,8 +46,9 @@ public:
             nitems.release();               // increment the number of available items in the array to read
         }
         // write -1 to buffer to terminate consumer threads
-        for (int j = 0; j < N; j++)
-        {
+
+        this -> wait();
+        for (int j = 0; j < N; j++){
             space.acquire();
             ctrl2.lock();
             buffer[in++] = -1;                // consumer threads will exit when they read -1
