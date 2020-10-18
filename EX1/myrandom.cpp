@@ -12,9 +12,11 @@ using namespace std;
 int N;                          // number of consumer threads
 
 int in = 0, out = 0, buffer[BUFFERSIZE];
-QSemaphore space(BUFFERSIZE);   // space is initialized to 10
-QSemaphore nitems;              // nitmes is initialized to 0
+QSemaphore space(BUFFERSIZE);   // space is initialized to 10, keeps track of how many empty buffer elements
+QSemaphore nitems;              // nitmes is initialized to 0, keeps track of how many buffer elements are currently available to read
 QMutex ctrl, ctrl2;                    // mutex is a binary semaphore with values 0 or 1
+int numOfNumbersProducedSoFar = 0;
+int NUM;
 
 
 //===============================================
@@ -42,20 +44,25 @@ public:
             ctrl2.lock();
             buffer[in++] = random;            // store the random integer number in the array
             in %= BUFFERSIZE;                 // array of 10 elements has index 0 to 9, reset to 0 when index reaches 10
+            numOfNumbersProducedSoFar++;
             ctrl2.unlock();
             nitems.release();               // increment the number of available items in the array to read
         }
         // write -1 to buffer to terminate consumer threads
 
-        this -> wait();
-        for (int j = 0; j < N; j++){
-            space.acquire();
-            ctrl2.lock();
-            buffer[in++] = -1;                // consumer threads will exit when they read -1
-            in %= BUFFERSIZE;
-            ctrl2.unlock();
-            nitems.release();
-        }// producer thread will finally write the -1s and exit
+        if(numOfNumbersProducedSoFar == NUM){
+            for (int j = 0; j < N; j++){
+                space.acquire();
+                ctrl2.lock();
+                buffer[in++] = -1;                // consumer threads will exit when they read -1
+                in %= BUFFERSIZE;
+                ctrl2.unlock();
+                nitems.release();
+            } // producer thread will finally write the -1s and exit
+
+        }
+
+
     }
 };
 
@@ -104,7 +111,7 @@ int main(int argc, char** argv){
     
     int M = atoi(argv[1]);                 // num of producer threads
     N = atoi(argv[2]);                 
-    int NUM = atoi(argv[3]);               // total number of random numbers to be generated
+    NUM = atoi(argv[3]);               // total number of random numbers to be generated
 
 
 
